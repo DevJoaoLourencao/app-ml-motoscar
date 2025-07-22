@@ -8,9 +8,12 @@ import { useTheme } from "./ThemeContext";
 interface HeaderProps {
   // Opções para o lado esquerdo
   leftContent?: {
-    type: "text" | "back";
+    type: "text" | "back" | "custom"; // Adicionado 'custom'
     title?: string;
     onBackPress?: () => void;
+    image?: string | React.ReactNode;
+    icon?: React.ReactNode;
+    customComponent?: React.ReactNode; // Novo: componente customizado
   };
 
   // Componente React para o lado direito
@@ -47,16 +50,49 @@ export const Header: React.FC<HeaderProps> = ({
   const renderLeftContent = () => {
     if (!leftContent) return null;
 
+    const renderImage = () => {
+      if (!leftContent.image) return null;
+      if (typeof leftContent.image === "string") {
+        return (
+          <View style={{ marginRight: 10 }}>
+            <img
+              src={leftContent.image}
+              alt="logo"
+              style={{ width: 32, height: 32, borderRadius: 8 }}
+            />
+          </View>
+        );
+      }
+      return <View style={{ marginRight: 10 }}>{leftContent.image}</View>;
+    };
+
+    const renderIcon = () => {
+      if (!leftContent.icon) return null;
+      return <View style={{ marginRight: 10 }}>{leftContent.icon}</View>;
+    };
+
+    // Novo: renderizar componente customizado
+    if (leftContent.type === "custom" && leftContent.customComponent) {
+      return (
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          {leftContent.customComponent}
+        </View>
+      );
+    }
+
     if (leftContent.type === "back") {
       return (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          {renderImage()}
+          {renderIcon()}
           <TouchableOpacity
             onPress={handleBackPress}
             className="py-2 px-[9px] rounded-full bg-white/20"
           >
             <FontAwesome name="arrow-left" size={20} color={headerTextColor} />
           </TouchableOpacity>
-          {leftContent.title && (
+          {/* Se houver ícone, não renderiza o título */}
+          {!leftContent.icon && leftContent.title && (
             <Text
               className="text-lg font-semibold"
               style={{ color: headerTextColor }}
@@ -70,8 +106,11 @@ export const Header: React.FC<HeaderProps> = ({
 
     if (leftContent.type === "text") {
       return (
-        <View className="flex-1 items-center">
-          {leftContent.title && (
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          {renderImage()}
+          {renderIcon()}
+          {/* Se houver ícone, não renderiza o título */}
+          {!leftContent.icon && leftContent.title && (
             <Text
               className="text-xl font-bold text-left"
               style={{ color: headerTextColor }}
@@ -155,3 +194,17 @@ export const HeaderVariants = {
     backgroundColor: "transparent",
   }),
 };
+
+// Exemplo de uso do Header com ícone no lugar do título
+import logo from "../assets/svg/logo";
+import Icon from "./Icon";
+
+export const HeaderWithLogo = (rightComponent?: React.ReactNode) => (
+  <Header
+    leftContent={{
+      type: "text",
+      icon: <Icon iconName={logo} className="w-8 h-8" withBg />,
+    }}
+    rightContent={rightComponent}
+  />
+);

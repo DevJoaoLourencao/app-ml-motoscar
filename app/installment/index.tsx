@@ -1,3 +1,4 @@
+import { ClientSelect } from "@/components/ClientSelect";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { Header } from "@/components/Header";
 import { SuccessModal } from "@/components/SuccessModal";
@@ -6,9 +7,10 @@ import { BrandColors } from "@/constants/BrandColors";
 import { FontAwesome } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   Platform,
@@ -82,13 +84,21 @@ const mockClients = [
 export default function InstallmentScreen() {
   const { colors } = useTheme();
   const params = useLocalSearchParams();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [installmentModalVisible, setInstallmentModalVisible] = useState(false);
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const {
     control,
@@ -116,7 +126,12 @@ export default function InstallmentScreen() {
 
   // Buscar dados do cliente baseado no ID recebido
   const clientId = params.clientId as string;
-  const selectedClient = mockClients.find((client) => client.id === clientId);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(
+    clientId || null
+  );
+  const selectedClient = mockClients.find(
+    (client) => client.id === selectedClientId
+  );
 
   const handleBackPress = () => {
     router.back();
@@ -187,49 +202,23 @@ export default function InstallmentScreen() {
     router.back();
   };
 
-  // Verificar se o cliente foi encontrado
-  if (!selectedClient) {
+  if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background.secondary }}>
         <Header
           leftContent={{
             type: "back",
-            title: "Parcelamento",
+            title: "Registrar Parcelamento",
             onBackPress: handleBackPress,
           }}
           rightContent={null}
         />
         <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            padding: 20,
-          }}
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
-          <FontAwesome
-            name="exclamation-triangle"
-            size={48}
-            color={colors.status.error}
-          />
-          <Text
-            style={{
-              marginTop: 16,
-              color: colors.text.primary,
-              fontSize: 18,
-              fontWeight: "600",
-            }}
-          >
-            Cliente não encontrado
-          </Text>
-          <Text
-            style={{
-              marginTop: 8,
-              color: colors.text.secondary,
-              textAlign: "center",
-            }}
-          >
-            O cliente especificado não foi encontrado no sistema.
+          <ActivityIndicator size="large" color={BrandColors.primary} />
+          <Text style={{ marginTop: 16, color: colors.text.secondary }}>
+            Carregando detalhes da parcela...
           </Text>
         </View>
       </View>
@@ -250,57 +239,8 @@ export default function InstallmentScreen() {
 
       <ScrollView style={{ flex: 1, padding: 16 }}>
         <View style={{ gap: 20 }}>
-          {/* Informações do Cliente */}
-          <View
-            style={{
-              backgroundColor: colors.card.background,
-              borderRadius: 12,
-              padding: 16,
-              borderWidth: 1,
-              borderColor: colors.card.border,
-            }}
-          >
-            <Text
-              style={{
-                color: colors.text.primary,
-                marginBottom: 12,
-                fontWeight: "600",
-                fontSize: 16,
-              }}
-            >
-              Cliente
-            </Text>
-            <Text
-              style={{
-                color: colors.text.primary,
-                fontSize: 18,
-                fontWeight: "600",
-                marginBottom: 4,
-              }}
-            >
-              {selectedClient.name}
-            </Text>
-            <Text
-              style={{
-                color: colors.text.secondary,
-                fontSize: 14,
-                marginBottom: 2,
-              }}
-            >
-              {selectedClient.email}
-            </Text>
-            <Text
-              style={{
-                color: colors.text.secondary,
-                fontSize: 14,
-              }}
-            >
-              {selectedClient.phone}
-            </Text>
-          </View>
-
-          {/* Número de Parcelas */}
-          <View>
+          {/* Seletor de Cliente */}
+          <View style={{ marginBottom: 8 }}>
             <Text
               style={{
                 color: colors.text.primary,
@@ -308,42 +248,16 @@ export default function InstallmentScreen() {
                 fontWeight: "600",
               }}
             >
-              Número de Parcelas *
+              Cliente *
             </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.card.background,
-                borderRadius: 12,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: errors.numberOfInstallments
-                  ? colors.status.error
-                  : colors.card.border,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-              onPress={() => setInstallmentModalVisible(true)}
-            >
-              <Text
-                style={{
-                  color: selectedInstallmentOption
-                    ? colors.text.primary
-                    : colors.text.secondary,
-                  fontSize: 16,
-                }}
-              >
-                {selectedInstallmentOption
-                  ? selectedInstallmentOption.name
-                  : "Selecionar parcelas..."}
-              </Text>
-              <FontAwesome
-                name="chevron-down"
-                size={16}
-                color={colors.text.secondary}
-              />
-            </TouchableOpacity>
-            {errors.numberOfInstallments && (
+            <ClientSelect
+              value={selectedClientId || undefined}
+              onSelect={(client) =>
+                setSelectedClientId(client ? client.id : null)
+              }
+              placeholder="Selecionar cliente..."
+            />
+            {!selectedClient && (
               <Text
                 style={{
                   color: colors.status.error,
@@ -351,144 +265,206 @@ export default function InstallmentScreen() {
                   marginTop: 4,
                 }}
               >
-                {errors.numberOfInstallments.message}
+                Selecione um cliente para registrar o parcelamento.
               </Text>
             )}
           </View>
 
-          {/* Valor da Parcela */}
-          <CurrencyInput
-            control={control}
-            name="installmentValue"
-            label="Valor da Parcela"
-            placeholder="R$ 0,00"
-            error={errors.installmentValue}
-            required
-          />
-
-          {/* Data de Pagamento */}
-          <View>
-            <Text
-              style={{
-                color: colors.text.primary,
-                marginBottom: 8,
-                fontWeight: "600",
-              }}
-            >
-              Data de Pagamento *
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.card.background,
-                borderRadius: 12,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: errors.paymentDate
-                  ? colors.status.error
-                  : colors.card.border,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-              onPress={() => setDateModalVisible(true)}
-            >
-              <Text
-                style={{
-                  color: colors.text.primary,
-                  fontSize: 16,
-                }}
-              >
-                {formatDate(getWatchedPaymentDate())}
-              </Text>
-              <FontAwesome
-                name="calendar"
-                size={16}
-                color={colors.text.secondary}
-              />
-            </TouchableOpacity>
-            {errors.paymentDate && (
-              <Text
-                style={{
-                  color: colors.status.error,
-                  fontSize: 12,
-                  marginTop: 4,
-                }}
-              >
-                {errors.paymentDate.message}
-              </Text>
-            )}
-          </View>
-
-          {/* Observações */}
-          <View>
-            <Text
-              style={{
-                color: colors.text.primary,
-                marginBottom: 8,
-                fontWeight: "600",
-              }}
-            >
-              Observações (Opcional)
-            </Text>
-            <Controller
-              control={control}
-              name="notes"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
+          {/* Só exibe o restante do formulário se houver cliente selecionado */}
+          {selectedClient && (
+            <>
+              {/* Número de Parcelas */}
+              <View>
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    marginBottom: 8,
+                    fontWeight: "600",
+                  }}
+                >
+                  Número de Parcelas *
+                </Text>
+                <TouchableOpacity
                   style={{
                     backgroundColor: colors.card.background,
                     borderRadius: 12,
                     padding: 16,
-                    color: colors.text.primary,
                     borderWidth: 1,
-                    borderColor: colors.card.border,
-                    fontSize: 16,
-                    minHeight: 100,
-                    textAlignVertical: "top",
+                    borderColor: errors.numberOfInstallments
+                      ? colors.status.error
+                      : colors.card.border,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
-                  placeholder="Adicionar observações sobre o parcelamento..."
-                  placeholderTextColor={colors.text.secondary}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  multiline
-                  numberOfLines={4}
-                />
-              )}
-            />
-          </View>
+                  onPress={() => setInstallmentModalVisible(true)}
+                >
+                  <Text
+                    style={{
+                      color: selectedInstallmentOption
+                        ? colors.text.primary
+                        : colors.text.secondary,
+                      fontSize: 16,
+                    }}
+                  >
+                    {selectedInstallmentOption
+                      ? selectedInstallmentOption.name
+                      : "Selecionar parcelas..."}
+                  </Text>
+                  <FontAwesome
+                    name="chevron-down"
+                    size={16}
+                    color={colors.text.secondary}
+                  />
+                </TouchableOpacity>
+                {errors.numberOfInstallments && (
+                  <Text
+                    style={{
+                      color: colors.status.error,
+                      fontSize: 12,
+                      marginTop: 4,
+                    }}
+                  >
+                    {errors.numberOfInstallments.message}
+                  </Text>
+                )}
+              </View>
 
-          {/* Botão de Salvar */}
-          <TouchableOpacity
-            style={{
-              backgroundColor: BrandColors.primary,
-              opacity: isValid && !loading ? 1 : 0.4,
-              borderRadius: 16,
-              padding: 20,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              marginTop: 20,
-            }}
-            onPress={handleSubmit(onSubmit)}
-            disabled={!isValid || loading}
-          >
-            <FontAwesome
-              name={loading ? "spinner" : "check"}
-              size={20}
-              color={colors.text.light}
-            />
-            <Text
-              style={{
-                color: colors.text.light,
-                fontSize: 18,
-                fontWeight: "600",
-              }}
-            >
-              {loading ? "Salvando..." : "Registrar Parcelamento"}
-            </Text>
-          </TouchableOpacity>
+              {/* Valor da Parcela */}
+              <CurrencyInput
+                control={control}
+                name="installmentValue"
+                label="Valor da Parcela"
+                placeholder="R$ 0,00"
+                error={errors.installmentValue}
+                required
+              />
+
+              {/* Data de Pagamento */}
+              <View>
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    marginBottom: 8,
+                    fontWeight: "600",
+                  }}
+                >
+                  Data de Pagamento *
+                </Text>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: colors.card.background,
+                    borderRadius: 12,
+                    padding: 16,
+                    borderWidth: 1,
+                    borderColor: errors.paymentDate
+                      ? colors.status.error
+                      : colors.card.border,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                  onPress={() => setDateModalVisible(true)}
+                >
+                  <Text
+                    style={{
+                      color: colors.text.primary,
+                      fontSize: 16,
+                    }}
+                  >
+                    {formatDate(getWatchedPaymentDate())}
+                  </Text>
+                  <FontAwesome
+                    name="calendar"
+                    size={16}
+                    color={colors.text.secondary}
+                  />
+                </TouchableOpacity>
+                {errors.paymentDate && (
+                  <Text
+                    style={{
+                      color: colors.status.error,
+                      fontSize: 12,
+                      marginTop: 4,
+                    }}
+                  >
+                    {errors.paymentDate.message}
+                  </Text>
+                )}
+              </View>
+
+              {/* Observações */}
+              <View>
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    marginBottom: 8,
+                    fontWeight: "600",
+                  }}
+                >
+                  Observações (Opcional)
+                </Text>
+                <Controller
+                  control={control}
+                  name="notes"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      style={{
+                        backgroundColor: colors.card.background,
+                        borderRadius: 12,
+                        padding: 16,
+                        color: colors.text.primary,
+                        borderWidth: 1,
+                        borderColor: colors.card.border,
+                        fontSize: 16,
+                        minHeight: 100,
+                        textAlignVertical: "top",
+                      }}
+                      placeholder="Adicionar observações sobre o parcelamento..."
+                      placeholderTextColor={colors.text.secondary}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      multiline
+                      numberOfLines={4}
+                    />
+                  )}
+                />
+              </View>
+
+              {/* Botão de Salvar */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: BrandColors.primary,
+                  opacity: isValid && !loading ? 1 : 0.4,
+                  borderRadius: 16,
+                  padding: 20,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  marginTop: 20,
+                }}
+                onPress={handleSubmit(onSubmit)}
+                disabled={!isValid || loading || !selectedClient}
+              >
+                <FontAwesome
+                  name={loading ? "spinner" : "check"}
+                  size={20}
+                  color={colors.text.light}
+                />
+                <Text
+                  style={{
+                    color: colors.text.light,
+                    fontSize: 18,
+                    fontWeight: "600",
+                  }}
+                >
+                  {loading ? "Salvando..." : "Registrar Parcelamento"}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           {/* Espaçamento final */}
           <View style={{ height: 20 }} />

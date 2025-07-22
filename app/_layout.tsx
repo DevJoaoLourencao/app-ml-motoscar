@@ -84,6 +84,18 @@ function RootLayoutNav() {
               name="installment/index"
               options={{ headerShown: false }}
             />
+            <Stack.Screen
+              name="add-client/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="client-details/[id]"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="sale-details/[id]"
+              options={{ headerShown: false }}
+            />
           </Stack>
         </NavigationThemeProvider>
       </ThemeProvider>

@@ -162,10 +162,12 @@ export default function VehiclesScreen() {
   // Filtros por faixa de preço
   const priceRanges: PriceRange[] = [
     { id: "all", label: "Todos os preços", min: 0, max: Infinity },
-    { id: "under-50k", label: "Até R$ 50k", min: 0, max: 50000 },
-    { id: "50k-100k", label: "R$ 50k - R$ 100k", min: 50000, max: 100000 },
-    { id: "100k-200k", label: "R$ 100k - R$ 200k", min: 100000, max: 200000 },
-    { id: "over-200k", label: "Acima de R$ 200k", min: 200000, max: Infinity },
+    { id: "under-10k", label: "Até R$ 10k", min: 0, max: 10000 },
+    { id: "10k-20k", label: "R$ 10k - R$ 20k", min: 10000, max: 20000 },
+    { id: "20k-30k", label: "R$ 20k - R$ 30k", min: 20000, max: 30000 },
+    { id: "30k-50k", label: "R$ 30k - R$ 50k", min: 30000, max: 50000 },
+    { id: "50k-70k", label: "R$ 50k - R$ 70k", min: 50000, max: 70000 },
+    { id: "over-70k", label: "Acima de R$ 70k", min: 70000, max: Infinity },
   ];
 
   // Função para extrair valor numérico do preço
@@ -234,7 +236,8 @@ export default function VehiclesScreen() {
         style={{
           backgroundColor: "rgba(255, 255, 255, 0.2)",
           borderRadius: 20,
-          padding: 8,
+          paddingVertical: 6,
+          paddingHorizontal: 8,
         }}
         onPress={() => router.push("/add-vehicle")}
       >

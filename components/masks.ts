@@ -21,8 +21,11 @@ export const Masks = {
   // Máscara monetária completa (R$ 999.999,99)
   CURRENCY: "R$ 999.999,99",
 
-  // Telefone brasileiro
+  // Telefone brasileiro (celular)
   PHONE: "(99) 99999-9999",
+
+  // Telefone fixo brasileiro
+  PHONE_LANDLINE: "(99) 9999-9999",
 
   // CPF
   CPF: "999.999.999-99",
@@ -216,4 +219,30 @@ export function formatLicensePlate(value: string): string {
     return cleanValue;
   }
   return cleanValue.slice(0, 3) + "-" + cleanValue.slice(3, 7);
+}
+
+/**
+ * Função para detectar e aplicar máscara de telefone automaticamente
+ * Aceita tanto telefone fixo (10 dígitos) quanto celular (11 dígitos)
+ */
+export function getPhoneMask(value: string): string {
+  const cleanValue = removeMask(value);
+
+  // Se tem 10 dígitos ou menos, é telefone fixo
+  if (cleanValue.length <= 10) {
+    return Masks.PHONE_LANDLINE;
+  }
+
+  // Se tem 11 dígitos ou mais, é celular
+  return Masks.PHONE;
+}
+
+/**
+ * Função para validar telefone (fixo ou celular)
+ */
+export function validatePhone(phone: string): boolean {
+  const cleanValue = removeMask(phone);
+
+  // Telefone deve ter 10 dígitos (fixo) ou 11 dígitos (celular)
+  return cleanValue.length === 10 || cleanValue.length === 11;
 }

@@ -2,18 +2,33 @@ import { Header } from "@/components/Header";
 import { useTheme } from "@/components/ThemeContext";
 import { BrandColors } from "@/constants/BrandColors";
 import { FontAwesome } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+// Definir tipo para Installment
+interface Installment {
+  id: number;
+  vehicle: string;
+  customer: string;
+  totalValue: string;
+  installmentValue: string;
+  totalInstallments: number;
+  paidInstallments: number;
+  nextDueDate: string;
+  status: string;
+  bank: string;
+}
 
 export default function InstallmentsScreen() {
   const { colors } = useTheme();
-  const [selectedFilter, setSelectedFilter] = useState("all");
-
-  const handleFilterPress = () => {
-    // Lógica para filtros
-    console.log("Filtros pressionados");
-  };
-
   const RightContent = () => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       <TouchableOpacity
@@ -23,9 +38,13 @@ export default function InstallmentsScreen() {
           paddingVertical: 6,
           paddingHorizontal: 8,
         }}
-        onPress={handleFilterPress}
+        onPress={() => {
+          router.push({
+            pathname: "/installment",
+          });
+        }}
       >
-        <FontAwesome name="filter" size={20} color={colors.text.light} />
+        <FontAwesome name="plus" size={20} color={colors.text.light} />
       </TouchableOpacity>
     </View>
   );
@@ -105,13 +124,6 @@ export default function InstallmentsScreen() {
     },
   ];
 
-  const filters = [
-    { id: "all", label: "Todas" },
-    { id: "up_to_date", label: "Em Dia" },
-    { id: "overdue", label: "Atrasadas" },
-    { id: "due_soon", label: "Vencem Logo" },
-  ];
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "up_to_date":
@@ -158,13 +170,56 @@ export default function InstallmentsScreen() {
     (inst) => inst.status === "overdue"
   ).length;
 
+  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [quitModalVisible, setQuitModalVisible] = useState(false);
+  const [installmentToQuit, setInstallmentToQuit] =
+    useState<Installment | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const filters = [
+    { id: "all", label: "Todas" },
+    { id: "up_to_date", label: "Em Dia" },
+    { id: "overdue", label: "Atrasadas" },
+    { id: "due_soon", label: "Vencem Logo" },
+  ];
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background.secondary }}>
+        <Header
+          leftContent={{
+            type: "text",
+            title: "Pagamentos",
+          }}
+          rightContent={<RightContent />}
+        />
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color={BrandColors.primary} />
+          <Text style={{ marginTop: 16, color: colors.text.secondary }}>
+            Carregando pagamentos...
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.secondary }}>
       {/* Header */}
       <Header
         leftContent={{
           type: "text",
-          title: "Parcelas Pendentes",
+          title: "Pagamentos",
         }}
         rightContent={<RightContent />}
       />
@@ -334,183 +389,340 @@ export default function InstallmentsScreen() {
               marginBottom: 16,
             }}
           >
-            Financiamentos
+            Parcelamentos
           </Text>
 
-          {installments.map((installment) => (
-            <View
-              key={installment.id}
-              style={{
-                backgroundColor: colors.card.background,
-                borderRadius: 12,
-                padding: 16,
-                marginBottom: 12,
-                shadowColor: colors.card.shadow,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                borderWidth: 1,
-                borderColor: colors.card.border,
-              }}
-            >
+          {installments
+            .filter((installment) =>
+              selectedFilter === "all"
+                ? true
+                : installment.status === selectedFilter
+            )
+            .map((installment) => (
               <View
+                key={installment.id}
                 style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
+                  backgroundColor: colors.card.background,
+                  borderRadius: 12,
+                  padding: 16,
                   marginBottom: 12,
+                  shadowColor: colors.card.shadow,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  borderWidth: 1,
+                  borderColor: colors.card.border,
                 }}
               >
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "bold",
-                      color: colors.text.primary,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {installment.vehicle}
-                  </Text>
-                  <Text
-                    style={{
-                      color: colors.text.secondary,
-                      fontSize: 14,
-                    }}
-                  >
-                    Cliente: {installment.customer}
-                  </Text>
-                  <Text
-                    style={{
-                      color: colors.text.secondary,
-                      fontSize: 14,
-                    }}
-                  >
-                    Banco: {installment.bank}
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    backgroundColor: getStatusColor(installment.status) + "20",
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    borderRadius: 12,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: getStatusColor(installment.status),
-                      fontSize: 12,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {getStatusText(installment.status)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Progress Bar */}
-              <View style={{ marginBottom: 12 }}>
                 <View
                   style={{
                     flexDirection: "row",
                     justifyContent: "space-between",
-                    marginBottom: 4,
+                    alignItems: "flex-start",
+                    marginBottom: 12,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: colors.text.secondary,
-                    }}
-                  >
-                    Progresso: {installment.paidInstallments}/
-                    {installment.totalInstallments}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: colors.text.secondary,
-                    }}
-                  >
-                    {getProgressPercentage(
-                      installment.paidInstallments,
-                      installment.totalInstallments
-                    ).toFixed(0)}
-                    %
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    backgroundColor: colors.border.light,
-                    height: 6,
-                    borderRadius: 3,
-                    overflow: "hidden",
-                  }}
-                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "bold",
+                        color: colors.text.primary,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {installment.vehicle}{" "}
+                      {installment.vehicle.match(/\d{4}$/)
+                        ? ""
+                        : installment.nextDueDate.slice(-4)}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.text.secondary,
+                        fontSize: 14,
+                      }}
+                    >
+                      Cliente: {installment.customer}
+                    </Text>
+                  </View>
                   <View
                     style={{
-                      backgroundColor: BrandColors.primary,
-                      height: "100%",
-                      width: `${getProgressPercentage(
+                      backgroundColor:
+                        getStatusColor(installment.status) + "20",
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: getStatusColor(installment.status),
+                        fontSize: 12,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {getStatusText(installment.status)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Progress Bar */}
+                <View style={{ marginBottom: 12 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      marginBottom: 4,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: colors.text.secondary,
+                      }}
+                    >
+                      Progresso: {installment.paidInstallments}/
+                      {installment.totalInstallments}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: colors.text.secondary,
+                      }}
+                    >
+                      {getProgressPercentage(
                         installment.paidInstallments,
                         installment.totalInstallments
-                      )}%`,
+                      ).toFixed(0)}
+                      %
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      backgroundColor: colors.border.light,
+                      height: 6,
+                      borderRadius: 3,
+                      overflow: "hidden",
                     }}
-                  />
+                  >
+                    <View
+                      style={{
+                        backgroundColor: BrandColors.primary,
+                        height: "100%",
+                        width: `${getProgressPercentage(
+                          installment.paidInstallments,
+                          installment.totalInstallments
+                        )}%`,
+                      }}
+                    />
+                  </View>
                 </View>
-              </View>
 
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <View>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      color: colors.text.secondary,
-                    }}
-                  >
-                    Próximo vencimento: {installment.nextDueDate}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "bold",
-                      color: BrandColors.primary,
-                    }}
-                  >
-                    {installment.installmentValue}
-                  </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <View>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: colors.text.secondary,
+                      }}
+                    >
+                      Próximo vencimento: {installment.nextDueDate}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "bold",
+                        color: BrandColors.primary,
+                      }}
+                    >
+                      {installment.installmentValue}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: colors.text.muted,
+                      }}
+                    >
+                      Total
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "600",
+                        color: colors.text.primary,
+                      }}
+                    >
+                      {installment.totalValue}
+                    </Text>
+                  </View>
                 </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text
+
+                {/* Botões de ação */}
+                <View style={{ flexDirection: "row", marginTop: 12 }}>
+                  <TouchableOpacity
                     style={{
-                      fontSize: 12,
-                      color: colors.text.muted,
+                      flex: 1,
+                      backgroundColor: "transparent",
+                      borderRadius: 8,
+                      paddingVertical: 10,
+                      alignItems: "center",
+                      borderWidth: 1,
+                      borderColor: BrandColors.success,
+                      marginRight: 12,
+                    }}
+                    onPress={() => {
+                      setInstallmentToQuit(installment);
+                      setQuitModalVisible(true);
                     }}
                   >
-                    Total
-                  </Text>
-                  <Text
+                    <Text
+                      style={{
+                        color: BrandColors.success,
+                        fontSize: 14,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Quitar
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={{
-                      fontSize: 14,
-                      fontWeight: "600",
-                      color: colors.text.primary,
+                      flex: 1,
+                      backgroundColor: BrandColors.primary,
+                      borderRadius: 8,
+                      paddingVertical: 10,
+                      alignItems: "center",
+                    }}
+                    onPress={() => {
+                      // Navegação futura para detalhes
                     }}
                   >
-                    {installment.totalValue}
-                  </Text>
+                    <Text
+                      style={{
+                        color: colors.text.light,
+                        fontSize: 14,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Detalhes
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-            </View>
-          ))}
+            ))}
         </View>
       </ScrollView>
+
+      {/* Modal de confirmação de quitação */}
+      {installmentToQuit && (
+        <Modal
+          visible={quitModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setQuitModalVisible(false)}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: colors.card.background,
+                borderRadius: 12,
+                padding: 24,
+                marginHorizontal: 32,
+                borderWidth: 1,
+                borderColor: colors.card.border,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "600",
+                  color: colors.text.primary,
+                  marginBottom: 8,
+                  textAlign: "center",
+                }}
+              >
+                Quitar Parcelamento
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: colors.text.secondary,
+                  marginBottom: 24,
+                  textAlign: "center",
+                  lineHeight: 20,
+                }}
+              >
+                Tem certeza que deseja quitar o parcelamento de{" "}
+                {installmentToQuit.vehicle} para o cliente{" "}
+                {installmentToQuit.customer}?\nEsta ação não pode ser desfeita.
+              </Text>
+
+              <View style={{ flexDirection: "row" }}>
+                <TouchableOpacity
+                  onPress={() => setQuitModalVisible(false)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: colors.card.background,
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: colors.card.border,
+                    marginRight: 12,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.text.primary,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Fechar
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    // Aqui você pode implementar a lógica de quitação real
+                    setQuitModalVisible(false);
+                    setInstallmentToQuit(null);
+                  }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: BrandColors.success,
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.text.light,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Confirmar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }

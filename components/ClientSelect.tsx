@@ -1,6 +1,7 @@
 import { useTheme } from "@/components/ThemeContext";
 import { BrandColors } from "@/constants/BrandColors";
 import { FontAwesome } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Modal,
@@ -68,6 +69,7 @@ export function ClientSelect({
   onFocus,
 }: ClientSelectProps) {
   const { colors } = useTheme();
+  const router = useRouter();
   const [modalVisible, setModalVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
 
@@ -78,7 +80,7 @@ export function ClientSelect({
       client.phone?.includes(searchText)
   );
 
-  const selectedClient = mockClients.find((client) => client.name === value);
+  const selectedClient = mockClients.find((client) => client.id === value);
 
   // Debug logs
   console.log("ClientSelect Debug:");
@@ -253,8 +255,7 @@ export function ClientSelect({
                 }}
                 onPress={() => {
                   setModalVisible(false);
-                  // TODO: Implementar navegação para adicionar novo cliente
-                  console.log("Adicionar novo cliente");
+                  router.push("/add-client");
                 }}
               >
                 <Text
@@ -342,7 +343,7 @@ export function ClientSelect({
                         </Text>
                       )}
                     </View>
-                    {value === client.name && (
+                    {value === client.id && (
                       <FontAwesome
                         name="check"
                         size={16}

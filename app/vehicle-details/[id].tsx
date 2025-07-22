@@ -407,6 +407,7 @@ export default function VehicleDetailsScreen() {
           leftContent={{
             type: "back",
             onBackPress: handleBackPress,
+            title: "Detalhes do Veículo",
           }}
         />
         <View

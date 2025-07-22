@@ -3,12 +3,41 @@ import { useTheme } from "@/components/ThemeContext";
 import { BrandColors } from "@/constants/BrandColors";
 import { FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+interface Sale {
+  id: number;
+  vehicle: string;
+  customer: string;
+  date: string;
+  value: string;
+  status: string;
+}
 
 export default function SalesScreen() {
   const { colors } = useTheme();
   const [selectedPeriod, setSelectedPeriod] = useState("month");
+  // Novo estado para modal de confirmação de cancelamento
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
+  // Loader
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleFilterPress = () => {
     // Lógica para filtros
@@ -17,17 +46,6 @@ export default function SalesScreen() {
 
   const RightContent = () => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-      <TouchableOpacity
-        style={{
-          backgroundColor: "rgba(255, 255, 255, 0.2)",
-          borderRadius: 20,
-          paddingVertical: 6,
-          paddingHorizontal: 8,
-        }}
-        onPress={handleFilterPress}
-      >
-        <FontAwesome name="filter" size={20} color={colors.text.light} />
-      </TouchableOpacity>
       <TouchableOpacity
         style={{
           backgroundColor: "rgba(255, 255, 255, 0.2)",
@@ -50,7 +68,6 @@ export default function SalesScreen() {
       date: "15/12/2024",
       value: "R$ 125.900",
       status: "completed",
-      commission: "R$ 6.295",
     },
     {
       id: 2,
@@ -59,7 +76,6 @@ export default function SalesScreen() {
       date: "14/12/2024",
       value: "R$ 42.500",
       status: "completed",
-      commission: "R$ 2.125",
     },
     {
       id: 3,
@@ -67,8 +83,7 @@ export default function SalesScreen() {
       customer: "Pedro Costa",
       date: "13/12/2024",
       value: "R$ 145.800",
-      status: "pending",
-      commission: "R$ 7.290",
+      status: "completed",
     },
     {
       id: 4,
@@ -77,7 +92,6 @@ export default function SalesScreen() {
       date: "12/12/2024",
       value: "R$ 89.900",
       status: "completed",
-      commission: "R$ 4.495",
     },
     {
       id: 5,
@@ -86,7 +100,6 @@ export default function SalesScreen() {
       date: "11/12/2024",
       value: "R$ 189.900",
       status: "cancelled",
-      commission: "R$ 0",
     },
     {
       id: 6,
@@ -95,7 +108,6 @@ export default function SalesScreen() {
       date: "10/12/2024",
       value: "R$ 165.400",
       status: "completed",
-      commission: "R$ 8.270",
     },
   ];
 
@@ -104,14 +116,13 @@ export default function SalesScreen() {
     { id: "month", label: "Mês" },
     { id: "quarter", label: "Trimestre" },
     { id: "year", label: "Ano" },
+    { id: "all", label: "Todos" },
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
         return BrandColors.success;
-      case "pending":
-        return BrandColors.warning;
       case "cancelled":
         return BrandColors.error;
       default:
@@ -122,13 +133,28 @@ export default function SalesScreen() {
   const getStatusText = (status: string) => {
     switch (status) {
       case "completed":
-        return "Concluída";
-      case "pending":
-        return "Pendente";
+        return "Concluído";
       case "cancelled":
-        return "Cancelada";
+        return "Cancelado";
       default:
         return "Desconhecido";
+    }
+  };
+
+  const getPeriodTitle = (period: string) => {
+    switch (period) {
+      case "week":
+        return "Vendas na Semana";
+      case "month":
+        return "Vendas no Mês";
+      case "quarter":
+        return "Vendas no Trimestre";
+      case "year":
+        return "Vendas no Ano";
+      case "all":
+        return "Vendas - Total";
+      default:
+        return "Vendas Recentes";
     }
   };
 
@@ -143,16 +169,27 @@ export default function SalesScreen() {
       );
     }, 0);
 
-  const totalCommission = sales
-    .filter((s) => s.status === "completed")
-    .reduce((sum, sale) => {
-      return (
-        sum +
-        parseFloat(
-          sale.commission.replace("R$ ", "").replace(".", "").replace(",", ".")
-        )
-      );
-    }, 0);
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background.secondary }}>
+        <Header
+          leftContent={{
+            type: "text",
+            title: "Vendas",
+          }}
+          rightContent={<RightContent />}
+        />
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color={BrandColors.primary} />
+          <Text style={{ marginTop: 16, color: colors.text.secondary }}>
+            Carregando vendas...
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.secondary }}>
@@ -286,18 +323,14 @@ export default function SalesScreen() {
             >
               <View
                 style={{
-                  backgroundColor: BrandColors.primary + "20",
+                  backgroundColor: BrandColors.info + "20",
                   borderRadius: 8,
                   padding: 8,
                   marginBottom: 8,
                   alignSelf: "flex-start",
                 }}
               >
-                <FontAwesome
-                  name="percent"
-                  size={16}
-                  color={BrandColors.primary}
-                />
+                <FontAwesome name="car" size={16} color={BrandColors.info} />
               </View>
               <Text
                 style={{
@@ -306,7 +339,7 @@ export default function SalesScreen() {
                   color: colors.text.primary,
                 }}
               >
-                R$ {totalCommission.toLocaleString("pt-BR")}
+                {sales.filter((s) => s.status === "completed").length}
               </Text>
               <Text
                 style={{
@@ -314,53 +347,9 @@ export default function SalesScreen() {
                   fontSize: 14,
                 }}
               >
-                Comissões
+                Veículos Vendidos
               </Text>
             </View>
-          </View>
-
-          <View
-            style={{
-              backgroundColor: colors.card.background,
-              borderRadius: 12,
-              padding: 16,
-              marginTop: 12,
-              shadowColor: colors.card.shadow,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              borderWidth: 1,
-              borderColor: colors.card.border,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: BrandColors.info + "20",
-                borderRadius: 8,
-                padding: 8,
-                marginBottom: 8,
-                alignSelf: "flex-start",
-              }}
-            >
-              <FontAwesome name="car" size={16} color={BrandColors.info} />
-            </View>
-            <Text
-              style={{
-                fontSize: 20,
-                fontWeight: "bold",
-                color: colors.text.primary,
-              }}
-            >
-              {sales.filter((s) => s.status === "completed").length}
-            </Text>
-            <Text
-              style={{
-                color: colors.text.secondary,
-                fontSize: 14,
-              }}
-            >
-              Veículos Vendidos
-            </Text>
           </View>
         </View>
 
@@ -374,7 +363,7 @@ export default function SalesScreen() {
               marginBottom: 16,
             }}
           >
-            Vendas Recentes
+            {getPeriodTitle(selectedPeriod)}
           </Text>
 
           {sales.map((sale) => (
@@ -398,7 +387,7 @@ export default function SalesScreen() {
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
-                  marginBottom: 8,
+                  marginBottom: 12,
                 }}
               >
                 <View style={{ flex: 1 }}>
@@ -446,51 +435,189 @@ export default function SalesScreen() {
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  marginBottom: 12,
                 }}
               >
-                <View>
-                  <Text
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: colors.text.secondary,
+                  }}
+                >
+                  {sale.date}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: BrandColors.primary,
+                  }}
+                >
+                  {sale.value}
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 8,
+                }}
+              >
+                {sale.status === "completed" && (
+                  <TouchableOpacity
                     style={{
-                      fontSize: 14,
-                      color: colors.text.secondary,
+                      flex: 1,
+                      backgroundColor: "transparent",
+                      borderRadius: 8,
+                      paddingVertical: 10,
+                      alignItems: "center",
+                      borderWidth: 1,
+                      borderColor: colors.status.error,
+                    }}
+                    onPress={() => {
+                      setSaleToCancel(sale);
+                      setCancelModalVisible(true);
                     }}
                   >
-                    {sale.date}
-                  </Text>
+                    <Text
+                      style={{
+                        color: colors.status.error,
+                        fontSize: 14,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Cancelar Venda
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: BrandColors.primary,
+                    borderRadius: 8,
+                    paddingVertical: 10,
+                    alignItems: "center",
+                  }}
+                  onPress={() => {
+                    // Navegar para detalhes da venda
+                    router.push(`/sale-details/${sale.id}`);
+                  }}
+                >
                   <Text
                     style={{
-                      fontSize: 16,
-                      fontWeight: "bold",
-                      color: BrandColors.primary,
-                    }}
-                  >
-                    {sale.value}
-                  </Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: colors.text.muted,
-                    }}
-                  >
-                    Comissão
-                  </Text>
-                  <Text
-                    style={{
+                      color: colors.text.light,
                       fontSize: 14,
                       fontWeight: "600",
-                      color: colors.text.primary,
                     }}
                   >
-                    {sale.commission}
+                    Detalhes
                   </Text>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
           ))}
         </View>
       </ScrollView>
+
+      {/* Modal de confirmação de cancelamento */}
+      <Modal
+        visible={cancelModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCancelModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.card.background,
+              borderRadius: 12,
+              padding: 24,
+              marginHorizontal: 32,
+              borderWidth: 1,
+              borderColor: colors.card.border,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "600",
+                color: colors.text.primary,
+                marginBottom: 8,
+                textAlign: "center",
+              }}
+            >
+              Cancelar Venda
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: colors.text.secondary,
+                marginBottom: 24,
+                textAlign: "center",
+                lineHeight: 20,
+              }}
+            >
+              Tem certeza que deseja cancelar a venda do veículo{" "}
+              {saleToCancel?.vehicle} para o cliente {saleToCancel?.customer}?
+              Esta ação não pode ser desfeita.
+            </Text>
+
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => setCancelModalVisible(false)}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.card.background,
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: colors.card.border,
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.text.primary,
+                    fontWeight: "600",
+                  }}
+                >
+                  Fechar
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  // Aqui você pode implementar a lógica de cancelamento real
+                  setCancelModalVisible(false);
+                  setSaleToCancel(null);
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.status.error,
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.text.light,
+                    fontWeight: "600",
+                  }}
+                >
+                  Confirmar
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
